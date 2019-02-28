@@ -1,3 +1,15 @@
-#map{
+html {
+	height: 100%;
+	font-family: "Comic Sans MS";
+}
+
+body {
+	height: 100%;
+	margin: 0px;
+	padding: 0px;
+}
+
+#fullMap {
+	width: 100%;
 	height: 100%;
 }

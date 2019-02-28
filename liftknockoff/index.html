@@ -4,32 +4,31 @@
 		<title>Knockoff Uber/Lyft</title>
 		<meta charset = "utf-8">
 		<meta name="viewport" content="initial-scale=1.0"/>
-		<link rel="stylesheet" href="mapStyle.css" type="text/css"/>
-	</head>
-	<body>
-		<div id="fullMap"></div>
-		<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4e7NXTN6opeOub-d14MO_5b_abytKc-Q"></script>
+		<link rel="stylesheet" href="mapStyle.css"/>
+		<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4e7NXTN6opeOub-d14MO_5b_abytKc-Q&libraries=geometry"></script>		
 		<script>
 			var myLat = 0;
 			var myLng = 0;
-			var me = new google.maps.LatLng(myLat, myLng);
-			var myOptions = {
+			var myLoc = new google.maps.LatLng(myLat, myLng);
+			var settings = {
 				zoom: 13, // The larger the zoom number, the bigger the zoom
-				center: me,
+				center: myMarker,
 				mapTypeId: google.maps.MapTypeId.ROADMAP
 			};
 			var map;
-			var marker;
-			var infowindow = new google.maps.InfoWindow();
+			var myMarker;
+			var myInfo = new google.maps.InfoWindow();
 			function init() {
-				map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
-				getMyLocation();
+				map = new google.maps.Map(document.getElementById("fullMap"), settings);
+				getLocations();
 			}
-			function getMyLocation() {
+			function getLocations() {
 				if (navigator.geolocation) { // the navigator.geolocation object is supported on your browser
 					navigator.geolocation.getCurrentPosition(function(position) {
 						myLat = position.coords.latitude;
-						myLng = position.coords.longitude;
+						myLng = position.coords.longitude;	
+						myLoc = new google.maps.LatLng(myLat, myLng);
+						setLocations();
 						renderMap();
 					});
 				}
@@ -37,38 +36,93 @@
 					alert("Geolocation is not supported by your web browser.  What a shame!");
 				}
 			}
-			function renderMap() {
-				me = new google.maps.LatLng(myLat, myLng);
-				// Update map and go there...
-				map.panTo(me);
-				
-				// Create a marker
-				marker = new google.maps.Marker({
-					position: me,
-					title: "Here I Am!"
-				});
-				marker.setMap(map);
-					
-				// Open info window on click of marker
-				google.maps.event.addListener(marker, 'click', function() {
-					infowindow.setContent(marker.title);
-					infowindow.open(map, marker);
-				});
-			}
-		</script>
-		<script>
 			xhr = new XMLHttpRequest();
 			xhr.open("POST", "https://hans-moleman.herokuapp.com/rides", "true");
 			xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+			var locales;
 			xhr.onreadystatechange = function(){
 				if(xhr.readyState == 4){
-					console.log(xhr.responseText);
-					locales = JSON.parse(xhr.responseText);
-					console.log(locales);	
+					locales = JSON.parse(xhr.responseText);	
+				}
+			};
+			var username = 'HCVWTKsr';
+			var toSend = 'username=' + username + '&lat=' + myLat + '&lng=' + myLng;
+			xhr.send(toSend);
+			var icons = {
+				myself: {
+					icon: 'myIcon.png'
+				},
+				vehicles: {
+					icon: 'car.png'
+				},
+				weiner:{
+					icon: 'weinermobile.png'
+				},
+				passengers:{
+					icon: 'passengers.png'
+				}
+			};
+			var closest = 100;
+			var existsWeiner = false;
+			var weinerDist;
+			function setLocations(){
+				var others = [];
+				var info = [];
+				if(locales.vehicles != undefined){
+					for(i = 0; i < locales.vehicles.length; i++){
+						var iconType;
+						var location = new google.maps.LatLng(locales.vehicles[i].lat,locales.vehicles[i].lng); 
+						var dist = google.maps.geometry.spherical.computeDistanceBetween(location, myLoc) / 1609.34;	
+						if(locales.vehicles[i].username == 'WEINERMOBILE'){
+							iconType = 'weiner';
+							existsWeiner = true;
+							weinerDist = dist;
+						}
+						else{
+							iconType = 'vehicles';
+						}						
+						if(dist < closest){
+							closest = dist;
+						}
+						var make = new google.maps.Marker({
+							position: location,
+							icon: icons[iconType].icon,
+							title: locales.vehicles[i].username + " is \n" + dist +
+								   "miles away"
+						});	
+						make.setMap(map);
+						others.push(make);
+						
+					}
 				}
 
-			};	
-			xhr.send('username=HCVWTKsr&lat=44.3&lng=32.8');
-		</script>
+			}
+			function renderMap() {
+				// Update map and go there...
+				map.panTo(myLoc);
+				
+				// Create a marker
+				var weinerStatus;
+				if(existsWeiner === true){
+					weinerStatus = "The WienerMobile is " + weinerDist + " miles away!!!";
+				}
+
+				myMarker = new google.maps.Marker({
+					position: myLoc,
+					title: username + "\nThe closest vehicle is " + closest + " miles away",
+					icon: icons['myself'].icon
+				});
+				myMarker.setMap(map);
+					
+				// Open info window on click of marker
+				google.maps.event.addListener(myMarker, 'click', function() {
+					myInfo.setContent(myMarker.title);
+					myInfo.open(map, myMarker);
+				});
+			}
+		</script>	
+	</head>
+	<body onload = "init()">
+		<div id="fullMap"></div>
 	</body>	
 </html>
