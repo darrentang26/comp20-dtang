@@ -65,10 +65,14 @@
 			var closest = 100;
 			var existsWeiner = false;
 			var weinerDist;
+			var isPass = false;
+			var isDriver = false;
+			var others = [];
+			var info = [];
+			var navi = [];
 			function setLocations(){
-				var others = [];
-				var info = [];
 				if(locales.vehicles != undefined){
+					isPass = true;
 					for(i = 0; i < locales.vehicles.length; i++){
 						var iconType;
 						var location = new google.maps.LatLng(locales.vehicles[i].lat,locales.vehicles[i].lng); 
@@ -92,8 +96,42 @@
 						});	
 						make.setMap(map);
 						others.push(make);
-						
+						wind = new google.maps.InfoWindow();
+						info.push(wind);
+						heyListen = new google.maps.event.addListener(make, 'click', function(){
+							wind.setContent(make.title),
+							wind.open(map, make)
+						});
+						navi.push(heyListen);
 					}
+				}
+				else if(locales.passengers != undefined){
+					isDriver = true;
+					for(i = 0; i < locales.passengers.length; i++){
+						var iconType;
+						var location = new google.maps.LatLng(locales.passengers[i].lat,locales.passengers[i].lng); 
+						var dist = google.maps.geometry.spherical.computeDistanceBetween(location, myLoc) / 1609.34;	
+						if(locales.vehicles[i].username == 'WEINERMOBILE'){
+							iconType = 'weiner';
+							existsWeiner = true;
+							weinerDist = dist;
+						}
+						else{
+							iconType = 'passengers';
+						}						
+						if(dist < closest){
+							closest = dist;
+						}
+						var make = new google.maps.Marker({
+							position: location,
+							icon: icons[iconType].icon,
+							title: locales.vehicles[i].username + " is " + dist +
+								   "miles away"
+						});	
+						make.setMap(map);
+						others.push(make);
+						
+					}		
 				}
 
 			}
@@ -104,12 +142,21 @@
 				// Create a marker
 				var weinerStatus;
 				if(existsWeiner === true){
-					weinerStatus = "The WienerMobile is " + weinerDist + " miles away!!!";
+					weinerStatus = "The WeinerMobile is " + weinerDist + " miles away!!!";
 				}
-
+				else{
+					weinerStatus = "The WeinerMobile is nowhere to be found...";
+				}
+				var type;
+				if(isPass == true){
+					type = 'vehicle';
+				}
+				else if(isDriver == true){
+					type = 'passenger';
+				}
 				myMarker = new google.maps.Marker({
 					position: myLoc,
-					title: username + "\nThe closest vehicle is " + closest + " miles away",
+					title: username + "\nThe closest " + type + " is " + closest + " miles away. " + weinerStatus,
 					icon: icons['myself'].icon
 				});
 				myMarker.setMap(map);
