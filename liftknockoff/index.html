@@ -11,57 +11,16 @@
 			var myLng = 0;
 			var myLoc = new google.maps.LatLng(myLat, myLng);
 			var settings = {
-				zoom: 13, // The larger the zoom number, the bigger the zoom
+				zoom: 13, 
 				center: myMarker,
 				mapTypeId: google.maps.MapTypeId.ROADMAP
 			};
 			var map;
 			var myMarker;
 			var myInfo = new google.maps.InfoWindow();
-			function init() {
-				map = new google.maps.Map(document.getElementById("fullMap"), settings);
-				getLocations();
-			}
-			function getLocations() {
-				if (navigator.geolocation) { // the navigator.geolocation object is supported on your browser
-					navigator.geolocation.getCurrentPosition(function(position) {
-						myLat = position.coords.latitude;
-						myLng = position.coords.longitude;	
-						myLoc = new google.maps.LatLng(myLat, myLng);
-						setLocations();
-						renderMap();
-					});
-				}
-				else {
-					alert("Geolocation is not supported by your web browser.  What a shame!");
-				}
-			}
-			xhr = new XMLHttpRequest();
-			xhr.open("POST", "https://hans-moleman.herokuapp.com/rides", "true");
-			xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 			var locales;
-			xhr.onreadystatechange = function(){
-				if(xhr.readyState == 4){
-					locales = JSON.parse(xhr.responseText);	
-				}
-			};
-			var username = 'HCVWTKsr';
-			var toSend = 'username=' + username + '&lat=' + myLat + '&lng=' + myLng;
-			xhr.send(toSend);
-			var icons = {
-				myself: {
-					icon: 'myIcon.png'
-				},
-				vehicles: {
-					icon: 'car.png'
-				},
-				weiner:{
-					icon: 'weinermobile.png'
-				},
-				passengers:{
-					icon: 'passengers.png'
-				}
-			};
+			var icons;
+			var username;
 			var closest = 100;
 			var existsWeiner = false;
 			var weinerDist;
@@ -70,6 +29,46 @@
 			var others = [];
 			var info = [];
 			var navi = [];
+			function init() {
+				map = new google.maps.Map(document.getElementById("fullMap"), settings);
+				getLocations();	
+			}
+			function getLocs(){
+				xhr = new XMLHttpRequest();
+				xhr.open("POST", "https://hans-moleman.herokuapp.com/rides", "true");
+				xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+				xhr.onreadystatechange = function(){
+				if(xhr.readyState == 4 && xhr.status == 200){
+					locales = JSON.parse(xhr.responseText);	
+					setLocations();
+					}
+				};
+				username = 'HCVWTKsr';
+				var toSend = 'username=' + username + '&lat=' + myLat + '&lng=' + myLng;
+				xhr.send(toSend);
+				icons = {
+					myself: {
+						icon: 'myIcon.png'
+					},
+					vehicles: {
+						icon: 'car.png'
+					},
+					weiner:{
+						icon: 'weinermobile.png'
+					},
+					passengers:{
+						icon: 'passengers.png'
+					}
+				};
+			}			
+			function getLocations() {
+				navigator.geolocation.getCurrentPosition(function(position) {
+					myLat = position.coords.latitude;
+					myLng = position.coords.longitude;	
+					myLoc = new google.maps.LatLng(myLat, myLng);
+					getLocs();
+				});
+			}
 			function setLocations(){
 				if(locales.vehicles != undefined){
 					isPass = true;
@@ -91,18 +90,13 @@
 						var make = new google.maps.Marker({
 							position: location,
 							icon: icons[iconType].icon,
-							title: locales.vehicles[i].username + " is \n" + dist +
-								   "miles away"
+							title: locales.vehicles[i].username + " is " + dist +
+								   " miles away"
 						});	
 						make.setMap(map);
-						others.push(make);
-						wind = new google.maps.InfoWindow();
-						info.push(wind);
-						heyListen = new google.maps.event.addListener(make, 'click', function(){
-							wind.setContent(make.title),
-							wind.open(map, make)
-						});
-						navi.push(heyListen);
+						others[i] = make;
+						makeWindows(i);
+
 					}
 				}
 				else if(locales.passengers != undefined){
@@ -130,16 +124,22 @@
 						});	
 						make.setMap(map);
 						others.push(make);
-						
+						makeWindows(i);						
 					}		
 				}
-
+				makeMyself();
 			}
-			function renderMap() {
-				// Update map and go there...
+			function makeWindows(i){
+					wind = new google.maps.InfoWindow();
+					info[i] = wind;
+					heyListen = new google.maps.event.addListener(others[i], 'click', function(){
+						wind.setContent(others[i].title),
+						wind.open(map, others[i])
+					});
+					navi[i] = heyListen;
+			}
+			function makeMyself() {
 				map.panTo(myLoc);
-				
-				// Create a marker
 				var weinerStatus;
 				if(existsWeiner === true){
 					weinerStatus = "The WeinerMobile is " + weinerDist + " miles away!!!";
@@ -147,7 +147,7 @@
 				else{
 					weinerStatus = "The WeinerMobile is nowhere to be found...";
 				}
-				var type;
+				var type = 'placeholder';
 				if(isPass == true){
 					type = 'vehicle';
 				}
@@ -160,8 +160,6 @@
 					icon: icons['myself'].icon
 				});
 				myMarker.setMap(map);
-					
-				// Open info window on click of marker
 				google.maps.event.addListener(myMarker, 'click', function() {
 					myInfo.setContent(myMarker.title);
 					myInfo.open(map, myMarker);
