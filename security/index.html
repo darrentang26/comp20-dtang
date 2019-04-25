@@ -3,6 +3,7 @@
 <head>
 	<title>Security Assessment</title>
 	<meta charset = "utf-8"/>
+	<link rel="stylesheet" href="style.css"/>
 </head>
 <body>
 	<h1>Introduction</h1>
@@ -18,8 +19,29 @@
 		<li>Third-Party tools such as BurpSuite and OWASP's Zed Attack Proxy (refer to references)</li>
 	</ul>
 	<h1>Abstraction of Findings</h1>
+		<p>Using built in commands, all the passenger data in the database is accessible<br>
+		   Trying to input script code that would cause the website/program to behave differently<br>
+		   than intended proves that the database server has some sort of serverside validation, or<br>
+		   ways to change the input so it no longer looks like code, and will be read as not code.
+		</p>
 	<h1>Issues Found</h1>
+	<ol>
+		<li>Database Leak</li>
+		<ul>
+			<li>All passenger can be obtained using MongoDB command loopholes</li>
+			<li>Location: /passenger.json route</li>
+			<li>Severity: High</li>
+			<li>Every passenger's information is accessible by anyone, could be sensitive data</li>
+			<li><img src="screenshots/Database_leak.PNG" alt="Screenshot of database leak" id="dbleak"/></li>
+			<li>Resolution: Rather than sending the input to search the database directly,<br>
+			                take a query that's put in a separate string and parse out unnecessary<br>
+			                characters, send that string to the database to search</li>
+		</ul>
+	</ol>
 	<h1>Conclusion</h1>
+		<p>Overall the program is well protected from XSS and other injection<br>
+		   based attacks due to good use of validation from all aspects of input
+		</p>
 	<h1>References</h1>
 		<ul>
 			<li>Burp Suite: http://www.portswigger.net/burp/download.html</li>
